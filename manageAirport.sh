@@ -8,7 +8,7 @@
 ## Disable the remember networks feature
 
 ###set the desired preferences
-#/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport prefs JoinMode=Automatic RequireAdminNetworkChange=YES RememberRecentNetworks=YES RequireAdminPowerToggle=YES
+/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport prefs JoinMode=Automatic RequireAdminNetworkChange=YES RememberRecentNetworks=YES RequireAdminPowerToggle=YES
 
 
 ## Determine the Wireless Device identifier
