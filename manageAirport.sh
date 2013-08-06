@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#  serviceWiFiPrep.sh <mountPoint> <computerName> <currentUsername> <Airport Power: On|Off> <Require Admin: On|Off> <Join Mode: Automatic|Preferred|Ranked|Recent|Strongest> <Preferred Network: Keep|Purge|Isolate> <Favorite Network: "Network SSID">
+#  manageAirport.sh <mountPoint> <computerName> <currentUsername> <Airport Power: On|Off> <Require Admin: On|Off> <Join Mode: Automatic|Preferred|Ranked|Recent|Strongest> <Preferred Network: Keep|Purge|Isolate> <Favorite Network: "Network SSID">
 #
 #  All fields are requried unless otherwise noted
 #   <mountPoint>    Reserved for the JSS
@@ -15,7 +15,10 @@
 #
 #  Created by Bradley D. Reno on 7/23/13.
 #
-
+#  Notes:  None of the macs I manage have more than one Airport device defined.  This code is not tested for multiple devices, nor for multiple Locations
+#
+#
+#
 ##############################################################
 ##
 ## Define base variables
@@ -42,11 +45,11 @@ on) airportPower="on"
 ;;
 ON) airportPower="on"
 ;;
-Off) airportPower="on"
+Off) airportPower="off"
 ;;
-OFF) airportPower="on"
+OFF) airportPower="off"
 ;;
-off) airportPower="on"
+off) airportPower="off"
 ;;
 *) echo  "Usage Error <Airport Power: On|Off>"
 setFailedOptions=$(( setFailedOptions + 1))
@@ -55,17 +58,17 @@ esac
 
 ## Error check and set variables for Require Admin
 case "$5" in
-On) requireAdmin="on"
+On) requireAdmin="YES"
 ;;
-on) requireAdmin="on"
+on) requireAdmin="YES"
 ;;
-ON) requireAdmin="on"
+ON) requireAdmin="YES"
 ;;
-Off) requireAdmin="on"
+Off) requireAdmin="NO"
 ;;
-OFF) requireAdmin="on"
+OFF) requireAdmin="NO"
 ;;
-off) requireAdmin="on"
+off) requireAdmin="NO"
 ;;
 *) echo  "Usage Error <Require Admin: On|Off>"
 setFailedOptions=$(( setFailedOptions + 1))
@@ -116,7 +119,7 @@ fi
 if [[ $setFailedOptions > 0 ]]; then
     echo "Found $setFailedOptions errors."
     echo "Exiting..."
-    echo "Usage: serviceWiFiPrep.sh <mountPoint> <computerName> <currentUsername> <Airport Power: On|Off> <Require Admin: On|Off> <Join Mode: Automatic|Preferred|Ranked|Recent|Strongest> <Preferred Network: Keep|Purge|Isolate> <Favorite Network: \"Network SSID\">"
+    echo "Usage: manageAirport.sh <mountPoint> <computerName> <currentUsername> <Airport Power: On|Off> <Require Admin: On|Off> <Join Mode: Automatic|Preferred|Ranked|Recent|Strongest> <Preferred Network: Keep|Purge|Isolate> <Favorite Network: \"Network SSID\">"
     exit 1
 fi
 
@@ -125,35 +128,53 @@ fi
 ## Production Code
 ##
 ##############################################################
-## Disable the remember networks feature
-###set the desired preferences
-#/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport prefs JoinMode=Automatic RequireAdminNetworkChange=YES RememberRecentNetworks=YES RequireAdminPowerToggle=YES
-
 
 ## Determine the Wireless Device identifier
+##  All of my machines have exactly 1 airport card defined. Error checking is needed if you permit users to add or remove cards or services
 device=$(/usr/sbin/networksetup -listallhardwareports | grep -E '(AirPort|Wi-Fi)' -A 1 | grep -o "en.")
 
-## Clear all remembered networks
-#tempStatus=$(networksetup -removeallpreferredwirelessnetworks $device)
 
-## Network SSIDs may contain white space, set the 'for' loop to parse at EOL.  
-#IFS=$'\n'
+## Set the desired preferences with the airport cli program
+## Impliments <Join Mode: Automatic|Preferred|Ranked|Recent|Strongest> and <Require Admin: On|Off>
+/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport prefs JoinMode=$joinMode RequireAdminNetworkChange=$requireAdmin RememberRecentNetworks=$requireAdmin RequireAdminPowerToggle=$requireAdmin
+##add error checking
 
-#Retrieve all wireless networsk | remove leading whitespace | remove first line which is not a network
-#Then loop through the results
-#for preferredNetwork in $(/usr/sbin/networksetup -listpreferredwirelessnetworks $device | /usr/bin/awk '$1=$1' | /usr/bin/sed '1d')
-#do
-#    if [ $preferredNetwork == "UofM Secure" ];
-#    then
-#        echo "Default network $preferredNetwork. Skipping..."
-#    else
-#        echo "Found $preferredNetwork... removing."
-#        /usr/sbin/networksetup -removepreferredwirelessnetwork  $device $preferredNetwork
-#    fi
-#done
+
+## Impliments <Preferred Network: Keep|Purge|Isolate> <Favorite Network: "Network SSID">
+case "$preferredNetworkList" in
+Purge) ## Clear all remembered networks
+    tempStatus=$(/usr/sbin/networksetup -removeallpreferredwirelessnetworks $device)
+    ##add error checking
+;;
+Isolate)
+    ## Network SSIDs may contain white space, set the 'for' loop to parse at EOL.  Backup IFS to OIFS first
+    OIFS=$IFS
+    IFS=$'\n'
+
+    #Retrieve all wireless networsk | remove leading whitespace | remove first line which is not a network
+    #Then loop through the results
+    for existingNetwork in $(/usr/sbin/networksetup -listpreferredwirelessnetworks $device | /usr/bin/awk '$1=$1' | /usr/bin/sed '1d')
+    do
+        if [[ "$existingNetwork" == "$favoriteNetwork" ]];
+        then
+            echo "Default network $existingNetwork. Skipping..."
+        else
+            echo "Found $existingNetwork... removing."
+            /usr/sbin/networksetup -removepreferredwirelessnetwork  $device $existingNetwork
+            ##Add error checking for cases when network SSID is not found and we attempt to remove the last Network
+        fi
+    done
+;;
+Keep) echo "Keeping all preffered networks."
+;;
+esac
+
+
+
 
 
 ## Set the Power Airport on or off
+## Impliments <Airport Power: On|Off>
 tempStatus=$(/usr/sbin/networksetup -setairportpower $device $airportPower)
 
 
