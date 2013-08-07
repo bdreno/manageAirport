@@ -24,12 +24,25 @@
 ## Define base variables
 ##
 ##############################################################
+
 setFailedOptions=0
 airportPower=""
 requireAdmin=""
 joinMode=""
 preferredNetworkList=""
 favoriteNetwork=""
+
+
+##############################################################
+##
+## Must be run as root
+##
+##############################################################
+
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run as root!" 2>&1
+    exit 1
+fi  
 
 ##############################################################
 ##
@@ -130,7 +143,7 @@ fi
 ##############################################################
 
 ## Determine the Wireless Device identifier
-##  All of my machines have exactly 1 airport card defined. Error checking is needed if you permit users to add or remove cards or services
+## All of my machines have exactly 1 airport card defined. Error checking is needed if you permit users to add or remove cards or services
 device=$(/usr/sbin/networksetup -listallhardwareports | grep -E '(AirPort|Wi-Fi)' -A 1 | grep -o "en.")
 
 
@@ -144,7 +157,6 @@ device=$(/usr/sbin/networksetup -listallhardwareports | grep -E '(AirPort|Wi-Fi)
 case "$preferredNetworkList" in
 Purge) ## Clear all remembered networks
     tempStatus=$(/usr/sbin/networksetup -removeallpreferredwirelessnetworks $device)
-    ##add error checking
 ;;
 Isolate)
     ## Network SSIDs may contain white space, set the 'for' loop to parse at EOL.  Backup IFS to OIFS first
@@ -160,17 +172,17 @@ Isolate)
             echo "Default network $existingNetwork. Skipping..."
         else
             echo "Found $existingNetwork... removing."
-            /usr/sbin/networksetup -removepreferredwirelessnetwork  $device $existingNetwork
-            ##Add error checking for cases when network SSID is not found and we attempt to remove the last Network
+            /usr/sbin/networksetup -removepreferredwirelessnetwork $device $existingNetwork
+            ##Testing on 10.8 indicates this can remove the last known netowork without error.  
         fi
     done
 ;;
 Keep) echo "Keeping all preffered networks."
 ;;
+*) echo  "Unknown case \"$preferredNetworkList\"- exiting..."
+exit 1
+;;
 esac
-
-
-
 
 
 ## Set the Power Airport on or off
