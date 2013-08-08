@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#  manageAirport.sh <mountPoint> <computerName> <currentUsername> <Airport Power: On|Off> <Require Admin: On|Off> <Join Mode: Automatic|Preferred|Ranked|Recent|Strongest> <Preferred Network: Keep|Purge|Isolate> <Favorite Network: "Network SSID">
+#  sudo manageAirport.sh <mountPoint> <computerName> <currentUsername> <Airport Power: On|Off> <Require Admin: On|Off> <Join Mode: Automatic|Preferred|Ranked|Recent|Strongest> <Preferred Network: Keep|Purge|Isolate> <Favorite Network: "Network SSID">
 #
 #  All fields are requried unless otherwise noted
 #   <mountPoint>    Reserved for the JSS
@@ -15,7 +15,7 @@
 #
 #  Created by Bradley D. Reno on 7/23/13.
 #
-#  Notes:  None of the macs I manage have more than one Airport device defined.  This code is not tested for multiple devices, nor for multiple Locations
+#  Notes:  Tested on OSX 10.8 and above.  This code is not tested for multiple airport devices, nor for multiple Locations.  
 #
 #
 #
@@ -40,9 +40,9 @@ favoriteNetwork=""
 ##############################################################
 
 if [[ $EUID -ne 0 ]]; then
-    echo "This script must be run as root!" 2>&1
-    exit 1
-fi  
+    echo "Usage Error: This script must be run as root!"
+    setFailedOptions=$(( setFailedOptions + 1))
+fi
 
 ##############################################################
 ##
@@ -64,7 +64,7 @@ OFF) airportPower="off"
 ;;
 off) airportPower="off"
 ;;
-*) echo  "Usage Error <Airport Power: On|Off>"
+*) echo  "Usage Error: <Airport Power: On|Off>"
 setFailedOptions=$(( setFailedOptions + 1))
 ;;
 esac
@@ -83,7 +83,7 @@ OFF) requireAdmin="NO"
 ;;
 off) requireAdmin="NO"
 ;;
-*) echo  "Usage Error <Require Admin: On|Off>"
+*) echo  "Usage Error: <Require Admin: On|Off>"
 setFailedOptions=$(( setFailedOptions + 1))
 ;;
 esac
@@ -100,7 +100,7 @@ Recent) joinMode="Recent"
 ;;
 Strongest) joinMode="Strongest"
 ;;
-*) echo  "Usage Error <Join Mode: Automatic|Preferred|Ranked|Recent|Strongest>"
+*) echo  "Usage Error: <Join Mode: Automatic|Preferred|Ranked|Recent|Strongest>"
 setFailedOptions=$(( setFailedOptions + 1))
 ;;
 esac
@@ -113,14 +113,14 @@ Purge) preferredNetworkList="Purge"
 ;;
 Isolate) preferredNetworkList="Isolate"
 ;;
-*) echo  "Usage Error <Preferred Network: Keep|Purge|Isolate>"
+*) echo  "Usage Error: <Preferred Network: Keep|Purge|Isolate>"
 setFailedOptions=$(( setFailedOptions + 1))
 ;;
 esac
 
 ## Error check and set variables for Favorite Network
 if [[ "$preferredNetworkList" == "Isolate" && "$8" == "" ]]; then
-    echo  "Usage Error <Favorite Network: \"Network SSID\">"
+    echo  "Usage Error: <Favorite Network: \"Network SSID\">"
     setFailedOptions=$(( setFailedOptions + 1))
 else
     favoriteNetwork="$8"
@@ -132,7 +132,7 @@ fi
 if [[ $setFailedOptions > 0 ]]; then
     echo "Found $setFailedOptions errors."
     echo "Exiting..."
-    echo "Usage: manageAirport.sh <mountPoint> <computerName> <currentUsername> <Airport Power: On|Off> <Require Admin: On|Off> <Join Mode: Automatic|Preferred|Ranked|Recent|Strongest> <Preferred Network: Keep|Purge|Isolate> <Favorite Network: \"Network SSID\">"
+    echo "Usage: sudo manageAirport.sh <mountPoint> <computerName> <currentUsername> <Airport Power: On|Off> <Require Admin: On|Off> <Join Mode: Automatic|Preferred|Ranked|Recent|Strongest> <Preferred Network: Keep|Purge|Isolate> <Favorite Network: \"Network SSID\">"
     exit 1
 fi
 
